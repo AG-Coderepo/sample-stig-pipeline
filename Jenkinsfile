@@ -1,7 +1,4 @@
 def config
-def isStageEnabled(stageName) {
-    return config.stages.find { it.name == stageName }?.enabled == true
-}
 
 pipeline {
     agent any
@@ -19,7 +16,9 @@ pipeline {
         }
 
         stage('Checkout') {
-            when { expression { isStageEnabled('Checkout') } }
+            when {
+                expression { config.stages.find { it.name == 'Checkout' }?.enabled == true }
+            }
             steps {
                 dir('sample-stig-package') {
                     git branch: "${config.spec.source.branch}",
@@ -29,12 +28,14 @@ pipeline {
         }
 
         stage('Install Dependencies') {
-            when { expression { isStageEnabled('InstallDependencies') } }
+            when {
+                expression { config.stages.find { it.name == 'InstallDependencies' }?.enabled == true }
+            }
             steps {
                 dir('sample-stig-package') {
-                    bat '''
-                    python -m venv venv
-                    call venv\\Scripts\\activate
+                    sh '''
+                    python3 -m venv venv
+                    . venv/bin/activate
                     pip install -r requirements.txt
                     pip install -e .
                     '''
@@ -43,11 +44,13 @@ pipeline {
         }
 
         stage('Unit Tests') {
-            when { expression { isStageEnabled('UnitTests') } }
+            when {
+                expression { config.stages.find { it.name == 'UnitTests' }?.enabled == true }
+            }
             steps {
                 dir('sample-stig-package') {
-                    bat '''
-                    call venv\\Scripts\\activate
+                    sh '''
+                    . venv/bin/activate
                     pytest
                     '''
                 }
@@ -55,11 +58,13 @@ pipeline {
         }
 
         stage('Build Package') {
-            when { expression { isStageEnabled('BuildPackage') } }
+            when {
+                expression { config.stages.find { it.name == 'BuildPackage' }?.enabled == true }
+            }
             steps {
                 dir('sample-stig-package') {
-                    bat '''
-                    call venv\\Scripts\\activate
+                    sh '''
+                    . venv/bin/activate
                     python -m build
                     '''
                 }
@@ -67,11 +72,13 @@ pipeline {
         }
 
         stage('Sign Package') {
-            when { expression { isStageEnabled('SignPackage') } }
+            when {
+                expression { config.stages.find { it.name == 'SignPackage' }?.enabled == true }
+            }
             steps {
                 dir('sample-stig-package') {
-                    bat '''
-                    call venv\\Scripts\\activate
+                    sh '''
+                    . venv/bin/activate
                     python -c "from stig_package.signer import sign_file; sign_file('dist/sample_stig_package-1.0.0.tar.gz')"
                     '''
                 }
@@ -79,11 +86,13 @@ pipeline {
         }
 
         stage('Generate Report') {
-            when { expression { isStageEnabled('GenerateReport') } }
+            when {
+                expression { config.stages.find { it.name == 'GenerateReport' }?.enabled == true }
+            }
             steps {
                 dir('sample-stig-package') {
-                    bat '''
-                    call venv\\Scripts\\activate
+                    sh '''
+                    . venv/bin/activate
                     python -c "from stig_package.reporter import generate_report; generate_report()"
                     '''
                 }
@@ -91,21 +100,25 @@ pipeline {
         }
 
         stage('Publish Artifact') {
-            when { expression { isStageEnabled('PublishArtifact') } }
+            when {
+                expression { config.stages.find { it.name == 'PublishArtifact' }?.enabled == true }
+            }
             steps {
                 dir('sample-stig-package') {
-                    bat '''
-                    if not exist ..\\local-artifactory\\sample-stig\\releases\\1.0.0 mkdir ..\\local-artifactory\\sample-stig\\releases\\1.0.0
-                    copy dist\\*.tar.gz ..\\local-artifactory\\sample-stig\\releases\\1.0.0\\
-                    copy dist\\*.sig ..\\local-artifactory\\sample-stig\\releases\\1.0.0\\
-                    copy reports\\final_build_report.txt ..\\local-artifactory\\sample-stig\\releases\\1.0.0\\
+                    sh '''
+                    mkdir -p ../local-artifactory/sample-stig/releases/1.0.0
+                    cp dist/*.tar.gz ../local-artifactory/sample-stig/releases/1.0.0/
+                    cp dist/*.sig ../local-artifactory/sample-stig/releases/1.0.0/
+                    cp reports/final_build_report.txt ../local-artifactory/sample-stig/releases/1.0.0/
                     '''
                 }
             }
         }
 
         stage('Archive Artifacts') {
-            when { expression { isStageEnabled('ArchiveArtifacts') } }
+            when {
+                expression { config.stages.find { it.name == 'ArchiveArtifacts' }?.enabled == true }
+            }
             steps {
                 archiveArtifacts artifacts: 'sample-stig-package/dist/**, sample-stig-package/reports/**', fingerprint: true
             }
