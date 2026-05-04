@@ -1,0 +1,59 @@
+apiVersion: local.practice/v1
+kind: JenkinsPipeline
+
+metadata:
+  name: sample-stig-hardening-release
+  owner: Athmeeya
+  team: qa-security
+  description: Build, test, sign, package, and publish sample STIG hardening package
+
+spec:
+  jobName: sample-stig-hardening-release
+  jenkinsfile: Jenkinsfile
+
+  source:
+    repoUrl: https://github.com/AG-Coderepo/sample-stig-package.git
+    branch: main
+
+  build:
+    pythonCommand: python
+    version: "1.0.0"
+
+  signing:
+    enabled: true
+    method: sha256
+
+  publish:
+    enabled: true
+    target: local-artifactory/sample-stig/releases/
+
+  notifications:
+    email:
+      enabled: true
+      recipients:
+        - yourmail@example.com
+
+stages:
+  - name: Checkout
+    enabled: true
+
+  - name: InstallDependencies
+    enabled: true
+
+  - name: UnitTests
+    enabled: true
+
+  - name: BuildPackage
+    enabled: true
+
+  - name: SignPackage
+    enabled: true
+
+  - name: GenerateReport
+    enabled: true
+
+  - name: PublishArtifact
+    enabled: true
+
+  - name: ArchiveArtifacts
+    enabled: true
